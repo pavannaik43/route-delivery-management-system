@@ -20,16 +20,6 @@ A daily-operations enterprise web application designed for route-based FMCG & da
 
 ---
 
-## 🔑 Default Credentials
-
-| Role | Username | Password | Permissions |
-|---|---|---|---|
-| **Administrator** | `admin` | `admin123` | Full system access: Products, Shops, Users, Vehicle Load, Deliveries, Dashboard, Analytics Reports |
-| **Delivery Staff** | `driver1` | `driver123` | Operational access: Vehicle Load, Field Deliveries, Live Stock, Invoices, Day Summary |
-| **Delivery Staff** | `driver2` | `driver123` | Operational access: Vehicle Load, Field Deliveries, Live Stock, Invoices, Day Summary |
-
-> 💡 *Quick Demo Buttons are also available on the Login screen for 1-click sign-in.*
-
 ---
 
 ## 🛠️ Tech Stack
