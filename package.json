@@ -18,5 +18,8 @@
     "inventory"
   ],
   "author": "Hatsun Agro Products",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
 }
