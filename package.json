@@ -1,0 +1,22 @@
+{
+  "name": "hatsun-rdms",
+  "version": "1.0.0",
+  "description": "Hatsun Agro Products — Route Delivery Management System (RDMS)",
+  "scripts": {
+    "dev:backend": "cd backend && npm start",
+    "dev:frontend": "cd frontend && npm run dev",
+    "seed": "cd backend && npm run seed",
+    "build": "cd frontend && npm run build"
+  },
+  "keywords": [
+    "fmcg",
+    "dairy",
+    "route-delivery",
+    "hatsun-agro",
+    "rdms",
+    "invoicing",
+    "inventory"
+  ],
+  "author": "Hatsun Agro Products",
+  "license": "ISC"
+}
