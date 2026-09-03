@@ -73,13 +73,13 @@ Deploy the backend first so you have the live API URL ready for the frontend.
    | `JWT_SECRET` | *(Generate a 32+ character string)* | Secret for auth tokens |
    | `CORS_ORIGIN` | `*` *(or your Vercel URL)* | Allows frontend API requests |
    | `AUTO_SEED` | `true` | Auto-populates products/users on 1st run |
-   | `DB_PATH` | `/var/data/database.sqlite` | Path on persistent disk |
-5. Add **Persistent Disk** (under *Disks* section):
-   - **Name**: `rdms-db-disk`
-   - **Mount Path**: `/var/data`
-   - **Size**: `1 GB` (Free/starter tier)
-6. Click **Create Web Service**.
-7. Once deployed, note down your live Backend URL:
+   | `DB_PATH` | `./database.sqlite` | Standard local path (No disk required) |
+
+> [!NOTE]
+> **No Disk Needed for Free Tier**: Render's Persistent Disks are only on paid plans. On Render Free Tier, simply **skip the Disks section entirely**. The application automatically stores the database in the local container directory (`./database.sqlite`) and auto-seeds initial data on every restart.
+
+5. Click **Create Web Service**.
+6. Once deployed, note down your live Backend URL:
    ```
    https://hatsun-rdms-api.onrender.com
    ```
