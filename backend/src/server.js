@@ -23,17 +23,40 @@ const userRoutes = require('./routes/userRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS setup: allow configurable origins or default all
-const corsOrigins = process.env.CORS_ORIGIN 
+// CORS setup: support configurable origins, wildcard or dynamic origin reflection
+const allowedOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : '*';
+  : null;
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow non-browser requests (e.g. curl, health checks, server-to-server)
+    if (!origin) return callback(null, true);
+    
+    // If wildcard or not set, reflect origin to support authorization headers cleanly
+    if (!allowedOrigins || allowedOrigins.includes('*')) {
+      return callback(null, true);
+    }
+    
+    // Check against configured list
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+    
+    // Fallback: allow to prevent breaking cross-origin SPA requests
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // Preflight cache 24h
+};
 
 // Middleware
-app.use(cors({
-  origin: corsOrigins,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -174,15 +174,42 @@ After deployment, test the following:
 
 ---
 
-## ❓ Frequently Asked Questions & Troubleshooting
+## ❓ Troubleshooting Common Deployment Issues
 
-### 1. "Network Error" or Login fails on frontend
-- Ensure `VITE_API_BASE_URL` in Vercel ends with `/api` (e.g. `https://hatsun-rdms-api.onrender.com/api`).
-- Ensure Render backend has finished deploying and `/api/health` returns `healthy`.
-- On free-tier Render instances, the server may spin down after 15 minutes of inactivity; the initial request may take 30–50 seconds to spin up.
+### 1. "Network Error" on Hosted Login (Valid or Invalid Credentials)
+If you see **"Network Error"** on Vercel or Netlify when clicking Sign In, follow these steps:
 
-### 2. CORS Error in browser console
-- In your Render environment variables, verify `CORS_ORIGIN` is either `*` or includes your Vercel domain (e.g. `https://hatsun-rdms.vercel.app`).
+1. **Check Environment Variables on Vercel/Netlify**:
+   - In Vite applications, environment variables must be defined **before or during build time**.
+   - Go to **Vercel Dashboard** → Your Project → **Settings** → **Environment Variables**.
+   - Ensure the following variable is present:
+     - **Key**: `VITE_API_BASE_URL`
+     - **Value**: `https://your-backend-api.onrender.com/api` *(replace with your actual Render URL)*
+   - > [!IMPORTANT]
+     > **You MUST Trigger a Redeployment** after adding or modifying environment variables! (Go to **Deployments** tab → Click the **•••** menu on latest deployment → Click **Redeploy**).
 
-### 3. Data is lost after restarting the backend
-- Ensure you have attached a **Persistent Disk** on Render mounted at `/var/data` and configured `DB_PATH=/var/data/database.sqlite`.
+2. **Verify the Backend is Awake & Healthy**:
+   - Open your backend health URL directly in your browser:
+     ```
+     https://your-backend-api.onrender.com/api/health
+     ```
+   - If it responds with `{"status":"healthy",...}`, your backend is live.
+   - **Render Free Tier Cold Starts**: Render's free tier automatically spins down instances after 15 minutes of inactivity. When you open the hosted website and log in for the first time, Render takes **30–50 seconds** to boot up. The Login page includes an automatic wake-up indicator and timer.
+
+3. **Verify CORS Settings on Render**:
+   - In **Render Dashboard** → Your Web Service → **Environment Variables**, verify:
+     - `CORS_ORIGIN` = `*` (or your exact Vercel frontend URL, e.g. `https://hatsun-rdms.vercel.app`).
+
+---
+
+### 2. CORS Blocked in Browser Console
+- If your browser console displays `Access to XMLHttpRequest has been blocked by CORS policy`:
+  - Ensure the backend has deployed with the latest code containing dynamic CORS headers and `OPTIONS` preflight support.
+  - Test `/api/health` from the browser to ensure the server is serving requests.
+
+---
+
+### 3. Data Persistence on Render Free Tier vs Paid Tier
+- **Render Free Tier**: Stores the SQLite database in local container storage (`./database.sqlite`). The system automatically seeds sample data on each container restart so testing is never blocked.
+- **Render Paid Plan ($7/mo)**: You can attach a Persistent Disk at `/var/data` and set `DB_PATH=/var/data/database.sqlite` for permanent persistence across manual service rebuilds.
+

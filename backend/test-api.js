@@ -98,6 +98,22 @@ async function runTests() {
   });
   console.log('7. Oversell Prevention Test (400 rejected):', oversizeDelivery.status === 400 ? 'PASS' : 'FAIL', oversizeDelivery.data.message);
 
+  // 7b. Seed today load for testing
+  const today = new Date().toISOString().split('T')[0];
+  await request({
+    host: 'localhost',
+    port: 5000,
+    path: '/api/loads',
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${driverToken}` }
+  }, {
+    loadDate: today,
+    items: [
+      { productId: 1, quantity: 50 },
+      { productId: 2, quantity: 30 }
+    ]
+  });
+
   // 8. Successful Delivery & Atomic Invoice Creation (Business Rule #4 & #6)
   const validDelivery = await request({
     host: 'localhost',
