@@ -12,5 +12,20 @@ export default defineConfig({
         secure: false
       }
     }
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-utils': ['@tanstack/react-query', 'axios', 'lucide-react', 'clsx', 'tailwind-merge'],
+          'vendor-pdf': ['jspdf', 'html2canvas']
+        }
+      }
+    }
   }
 });

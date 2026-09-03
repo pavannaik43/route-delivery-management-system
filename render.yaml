@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: hatsun-rdms-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: AUTO_SEED
+        value: "true"
+      - key: DB_PATH
+        value: /var/data/database.sqlite
+    disk:
+      name: rdms-db-disk
+      mountPath: /var/data
+      sizeGB: 1

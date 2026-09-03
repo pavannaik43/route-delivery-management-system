@@ -55,3 +55,14 @@ npm run dev       # Runs on http://localhost:3000
 2. **Strict Non-Negative Stock**: A delivery cannot dispatch more units of a product than currently remaining on the vehicle (`Loaded − Already Delivered`).
 3. **Atomic Delivery & Invoicing**: Deliveries and tax invoices are created in a single ACID database transaction. No delivery exists without an invoice.
 4. **Immediate Real-Time Decrementation**: Stock levels update immediately upon delivery commit without manual reconciliation.
+
+---
+
+## 🌐 Production Hosting (Split Host Method)
+
+The project is fully pre-configured for **Split Host Deployment**:
+- **Frontend SPA (Vercel / Netlify)**: Static React Vite edge deployment with optimized vendor chunks and instant global CDN.
+- **Backend API (Render / Railway / Fly.io)**: Node.js Express REST API with persistent SQLite storage and automated schema seeding.
+
+👉 **See the complete step-by-step [Deployment Guide](DEPLOYMENT.md) for 1-click Render and Vercel hosting instructions.**
+

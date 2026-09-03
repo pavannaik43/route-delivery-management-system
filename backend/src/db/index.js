@@ -2,8 +2,18 @@ const initSqlJs = require('sql.js');
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, '../../database.sqlite');
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../../database.sqlite');
 const SCHEMA_PATH = path.join(__dirname, 'schema.sql');
+
+// Ensure database directory exists (critical for container mounts e.g. /data)
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) {
+  try {
+    fs.mkdirSync(dbDir, { recursive: true });
+  } catch (err) {
+    console.warn(`Could not create DB directory ${dbDir}:`, err.message);
+  }
+}
 
 let dbInstance = null;
 let SQL = null;

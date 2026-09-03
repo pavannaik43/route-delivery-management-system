@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hatsun-rdms-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - JWT_SECRET=hatsun_super_secure_jwt_secret_production_2026
+      - DB_PATH=/data/database.sqlite
+      - CORS_ORIGIN=*
+      - AUTO_SEED=true
+    volumes:
+      - rdms_data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:5000/api
+    container_name: hatsun-rdms-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  rdms_data:
+    name: hatsun_rdms_sqlite_data
