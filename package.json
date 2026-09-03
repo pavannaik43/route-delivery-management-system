@@ -4,6 +4,8 @@
   "description": "Hatsun Agro Products — Route Delivery Management System (RDMS)",
   "scripts": {
     "start": "node backend/src/server.js",
+    "postinstall": "npm install --prefix backend",
+    "render-build": "npm install --prefix backend",
     "dev:backend": "cd backend && npm start",
     "dev:frontend": "cd frontend && npm run dev",
     "install:all": "npm install --prefix backend && npm install --prefix frontend",
@@ -22,6 +24,14 @@
   ],
   "author": "Hatsun Agro Products",
   "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "sql.js": "^1.12.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.62.1"
   }
