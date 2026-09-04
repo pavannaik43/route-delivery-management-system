@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { db } = require('../db');
 const { JWT_SECRET } = require('../middleware/auth');
+const logger = require('../config/logger');
 
 async function login(req, res, next) {
   try {
@@ -13,13 +14,25 @@ async function login(req, res, next) {
 
     const user = await db.get('SELECT * FROM users WHERE username = ?', [username.trim()]);
     if (!user) {
+      logger.logSecurityEvent('LOGIN_FAILED', {
+        username: username.trim(),
+        ip: req.ip,
+        reason: 'user_not_found'
+      });
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      logger.logSecurityEvent('LOGIN_FAILED', {
+        username: username.trim(),
+        ip: req.ip,
+        reason: 'invalid_password'
+      });
       return res.status(401).json({ success: false, message: 'Invalid username or password.' });
     }
+
+    logger.info('Login successful', { username: username.trim(), userId: user.id });
 
     const tokenPayload = {
       id: user.id,

@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { db } = require('../db');
+const logger = require('../config/logger');
 
 async function getUsers(req, res, next) {
   try {
@@ -26,7 +27,13 @@ async function createUser(req, res, next) {
 
     const existing = await db.get('SELECT id FROM users WHERE username = ?', [username.trim()]);
     if (existing) {
-      return res.status(400).json({ success: false, message: 'Username already exists.' });
+      logger.logSecurityEvent('USER_CREATION_FAILED', {
+        reason: 'username_exists',
+        attemptedUsername: username.trim(),
+        ip: req.ip,
+        adminId: req.user?.id
+      });
+      return res.status(400).json({ success: false, message: 'Registration failed. Please try again.' });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -38,6 +45,12 @@ async function createUser(req, res, next) {
     );
 
     const newUser = await db.get('SELECT id, username, role, created_at FROM users WHERE id = ?', [result.lastInsertRowid]);
+    logger.info('User created successfully', {
+      newUserId: newUser.id,
+      username: newUser.username,
+      role: newUser.role,
+      createdBy: req.user?.id
+    });
     res.status(201).json({ success: true, message: 'User created successfully', user: newUser });
   } catch (err) {
     next(err);

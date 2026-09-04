@@ -1,11 +1,14 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
 const { getDb } = require('./db');
 const seed = require('./db/seed');
 const errorHandler = require('./middleware/errorHandler');
+const logger = require('./config/logger');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 // Route imports
 const authRoutes = require('./routes/authRoutes');
@@ -23,6 +26,35 @@ const userRoutes = require('./routes/userRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Security: Helmet for HTTP headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"]
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Security: HTTPS redirect in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (!req.secure && req.get('x-forwarded-proto') !== 'https') {
+      return res.redirect('https://' + req.get('host') + req.url);
+    }
+    next();
+  });
+}
+
 // CORS setup: support configurable origins, wildcard or dynamic origin reflection
 const allowedOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
@@ -32,18 +64,25 @@ const corsOptions = {
   origin: function (origin, callback) {
     // Allow non-browser requests (e.g. curl, health checks, server-to-server)
     if (!origin) return callback(null, true);
-    
+
     // If wildcard or not set, reflect origin to support authorization headers cleanly
     if (!allowedOrigins || allowedOrigins.includes('*')) {
       return callback(null, true);
     }
-    
+
     // Check against configured list
     if (allowedOrigins.indexOf(origin) !== -1) {
       return callback(null, true);
     }
-    
-    // Fallback: allow to prevent breaking cross-origin SPA requests
+
+    // Strict rejection in production
+    if (process.env.NODE_ENV === 'production') {
+      logger.logSecurityEvent('CORS_BLOCKED', { origin, ip: callback.req?.ip });
+      return callback(new Error('Not allowed by CORS'));
+    }
+
+    // Development fallback: allow but log warning
+    logger.warn('CORS: Allowing unlisted origin in development', { origin });
     callback(null, true);
   },
   credentials: true,
@@ -58,12 +97,20 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Security: Request size limits to prevent DoS
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Request logger
+// Security: API rate limiting
+app.use('/api', apiLimiter);
+
+// Request logger with security-focused logging
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  logger.info(`${req.method} ${req.originalUrl}`, {
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+    userId: req.user?.id
+  });
   next();
 });
 

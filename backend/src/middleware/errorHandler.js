@@ -1,5 +1,15 @@
+const logger = require('../config/logger');
+
 function errorHandler(err, req, res, next) {
-  console.error('API Error:', err);
+  // Log error with context
+  logger.error('API Error', {
+    error: err.message,
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    path: req.path,
+    method: req.method,
+    ip: req.ip,
+    userId: req.user?.id
+  });
 
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
@@ -12,3 +22,4 @@ function errorHandler(err, req, res, next) {
 }
 
 module.exports = errorHandler;
+
