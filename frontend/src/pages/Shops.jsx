@@ -139,15 +139,39 @@ export const Shops = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
     if (!formData.shop_name) {
       setFormError('Shop name is required.');
       return;
     }
+    if (!formData.owner_name) {
+      setFormError('Owner / contact person name is required.');
+      return;
+    }
+    if (!formData.phone) {
+      setFormError('Phone number is required.');
+      return;
+    }
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (!/^\d{10}$/.test(phoneDigits)) {
+      setFormError('Phone must be exactly 10 digits.');
+      return;
+    }
+    if (!formData.address) {
+      setFormError('Full address is required.');
+      return;
+    }
+    if (!formData.route) {
+      setFormError('Delivery route is required.');
+      return;
+    }
+
+    const payload = { ...formData, phone: phoneDigits };
 
     if (editingShop) {
-      updateMutation.mutate({ id: editingShop.id, data: formData });
+      updateMutation.mutate({ id: editingShop.id, data: payload });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(payload);
     }
   };
 
@@ -357,22 +381,25 @@ export const Shops = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="Owner / Contact Person"
+              label="Owner / Contact Person *"
               placeholder="e.g. S. Sundaram"
               value={formData.owner_name}
               onChange={(e) => setFormData({ ...formData, owner_name: e.target.value })}
+              required
             />
 
             <Input
-              label="Phone Number"
-              placeholder="e.g. +91 98401 23456"
+              label="Phone Number *"
+              type="tel"
+              placeholder="10 digits, e.g. 9840123456"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              required
             />
           </div>
 
           <Select
-            label="Assigned Delivery Route"
+            label="Assigned Delivery Route *"
             value={formData.route}
             onChange={(e) => setFormData({ ...formData, route: e.target.value })}
           >
@@ -384,10 +411,11 @@ export const Shops = () => {
           </Select>
 
           <Input
-            label="Full Address"
+            label="Full Address *"
             placeholder="Shop No., Street, Landmark, Area, Chennai"
             value={formData.address}
             onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+            required
           />
 
           <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">

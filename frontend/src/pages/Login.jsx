@@ -10,6 +10,7 @@ import { Truck, ShieldCheck, UserCheck, Lock, User, Server, RefreshCw, AlertTria
 
 export const Login = () => {
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [errorDetails, setErrorDetails] = useState(null);
@@ -77,8 +78,8 @@ export const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username || !password) {
-      setError('Please enter both username and password.');
+    if (!username || !email || !password) {
+      setError('Please enter username, email, and password.');
       setErrorDetails(null);
       return;
     }
@@ -87,7 +88,7 @@ export const Login = () => {
       setError('');
       setErrorDetails(null);
       setIsLoading(true);
-      await login(username, password);
+      await login(username, email, password);
       navigate('/dashboard');
     } catch (err) {
       const formatted = formatNetworkError(err);
@@ -99,14 +100,15 @@ export const Login = () => {
     }
   };
 
-  const handleQuickLogin = async (user, pass) => {
+  const handleQuickLogin = async (user, emailVal, pass) => {
     setUsername(user);
+    setEmail(emailVal);
     setPassword(pass);
     try {
       setError('');
       setErrorDetails(null);
       setIsLoading(true);
-      await login(user, pass);
+      await login(user, emailVal, pass);
       navigate('/dashboard');
     } catch (err) {
       const formatted = formatNetworkError(err);
@@ -214,6 +216,16 @@ export const Login = () => {
               />
 
               <Input
+                label="Email"
+                type="email"
+                icon={User}
+                placeholder="e.g. admin@hatsun.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+
+              <Input
                 label="Password"
                 type="password"
                 icon={Lock}
@@ -242,7 +254,7 @@ export const Login = () => {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => handleQuickLogin('admin', 'admin123')}
+                  onClick={() => handleQuickLogin('admin', 'admin@hatsun.com', 'Admin@123')}
                   className="flex flex-col items-center justify-center p-3 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-100/80 transition-all text-left group"
                 >
                   <div className="flex items-center gap-1.5 text-amber-800 font-bold text-xs">
@@ -254,7 +266,7 @@ export const Login = () => {
 
                 <button
                   type="button"
-                  onClick={() => handleQuickLogin('driver1', 'driver123')}
+                  onClick={() => handleQuickLogin('driver1', 'driver1@hatsun.com', 'Driver@123')}
                   className="flex flex-col items-center justify-center p-3 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/80 transition-all text-left group"
                 >
                   <div className="flex items-center gap-1.5 text-emerald-800 font-bold text-xs">

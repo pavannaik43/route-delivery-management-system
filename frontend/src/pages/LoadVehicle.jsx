@@ -106,7 +106,7 @@ export const LoadVehicle = () => {
     setAlertInfo(null);
 
     const itemsToLoad = Object.entries(quantities)
-      .map(([prodId, qty]) => ({ productId: Number(prodId), quantity: Number(qty) }))
+      .map(([prodId, qty]) => ({ product_id: Number(prodId), quantity: Number(qty) }))
       .filter(item => item.quantity > 0);
 
     if (itemsToLoad.length === 0) {
@@ -115,7 +115,7 @@ export const LoadVehicle = () => {
     }
 
     createLoadsMutation.mutate({
-      date: selectedDate,
+      load_date: selectedDate,
       items: itemsToLoad
     });
   };

@@ -30,7 +30,9 @@ export const Users = () => {
 
   const [formData, setFormData] = useState({
     username: '',
+    email: '',
     password: '',
+    phone: '',
     role: 'delivery_staff'
   });
 
@@ -76,7 +78,9 @@ export const Users = () => {
   const resetForm = () => {
     setFormData({
       username: '',
+      email: '',
       password: '',
+      phone: '',
       role: 'delivery_staff'
     });
     setEditingUser(null);
@@ -92,7 +96,9 @@ export const Users = () => {
     setEditingUser(u);
     setFormData({
       username: u.username,
+      email: u.email || '',
       password: '',
+      phone: u.phone || '',
       role: u.role
     });
     setFormError('');
@@ -101,26 +107,78 @@ export const Users = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.username) {
-      setFormError('Username is required.');
+
+    // --- Username validation (create only, matches backend createUserSchema) ---
+    if (!editingUser) {
+      if (!formData.username) {
+        setFormError('Username is required.');
+        return;
+      }
+      if (!/^[a-zA-Z0-9]+$/.test(formData.username)) {
+        setFormError('Username must be alphanumeric (letters and numbers only).');
+        return;
+      }
+      if (formData.username.length < 3 || formData.username.length > 30) {
+        setFormError('Username must be between 3 and 30 characters.');
+        return;
+      }
+    }
+
+    if (!formData.email) {
+      setFormError('Email is required.');
       return;
     }
 
-    if (!editingUser && !formData.password) {
-      setFormError('Password is required for new users.');
+    if (!formData.phone) {
+      setFormError('Phone is required.');
       return;
+    }
+    if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ''))) {
+      setFormError('Phone must be exactly 10 digits.');
+      return;
+    }
+
+    if (!editingUser) {
+      if (!formData.password) {
+        setFormError('Password is required for new users.');
+        return;
+      }
+      if (formData.password.length < 8) {
+        setFormError('Password must be at least 8 characters long.');
+        return;
+      }
+      if (!/[A-Z]/.test(formData.password)) {
+        setFormError('Password must contain at least one uppercase letter.');
+        return;
+      }
+      if (!/[a-z]/.test(formData.password)) {
+        setFormError('Password must contain at least one lowercase letter.');
+        return;
+      }
+      if (!/\d/.test(formData.password)) {
+        setFormError('Password must contain at least one digit.');
+        return;
+      }
+      if (!/[!@$%*?&]/.test(formData.password)) {
+        setFormError('Password must contain at least one special character (@$!%*?&).');
+        return;
+      }
     }
 
     if (editingUser) {
       updateMutation.mutate({
         id: editingUser.id,
         data: {
-          role: formData.role,
-          password: formData.password || undefined
+          email: formData.email,
+          phone: formData.phone.replace(/\D/g, ''),
+          role: formData.role
         }
       });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate({
+        ...formData,
+        phone: formData.phone.replace(/\D/g, '')
+      });
     }
   };
 
@@ -271,6 +329,24 @@ export const Users = () => {
             required
           />
 
+          <Input
+            label="Email *"
+            type="email"
+            placeholder="e.g. driver3@hatsun.com"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            required
+          />
+
+          <Input
+            label="Phone *"
+            type="tel"
+            placeholder="10 digits, e.g. 9876543210"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            required
+          />
+
           <Select
             label="System Role *"
             value={formData.role}
@@ -281,9 +357,9 @@ export const Users = () => {
           </Select>
 
           <Input
-            label={editingUser ? 'Reset Password (leave blank to keep current)' : 'Password *'}
+            label={editingUser ? 'Password (leave blank to keep current)' : 'Password *'}
             type="password"
-            placeholder="••••••••"
+            placeholder="Min 8 chars, upper+lower+digit+special"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             required={!editingUser}

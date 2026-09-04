@@ -7,6 +7,7 @@ export const checkHealthApi = () => api.get('/health').then(res => res.data);
 export const loginApi = (credentials) => api.post('/auth/login', credentials).then(res => res.data);
 export const getMeApi = () => api.get('/auth/me').then(res => res.data);
 export const logoutApi = () => api.post('/auth/logout').then(res => res.data);
+export const changePasswordApi = (data) => api.post('/auth/change-password', data).then(res => res.data);
 
 
 // Products
