@@ -2,7 +2,9 @@
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,          -- bcrypt hash
+  phone TEXT,
   role TEXT NOT NULL CHECK(role IN ('admin', 'delivery_staff')),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -64,6 +66,7 @@ CREATE TABLE IF NOT EXISTS delivery_items (
 );
 
 -- Indexes for lightning fast lookups & report aggregations
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_vehicle_load_date ON vehicle_load(load_date);
 CREATE INDEX IF NOT EXISTS idx_deliveries_date ON deliveries(delivery_date);
 CREATE INDEX IF NOT EXISTS idx_deliveries_shop ON deliveries(shop_id);

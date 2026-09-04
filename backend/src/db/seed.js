@@ -15,20 +15,21 @@ async function seed() {
   // 1. Seed Users
   console.log('Seeding Users...');
   const salt = await bcrypt.genSalt(10);
-  const adminPassword = await bcrypt.hash('admin123', salt);
-  const driverPassword = await bcrypt.hash('driver123', salt);
+  const adminPassword = await bcrypt.hash('Admin@123', salt);
+  const driver1Password = await bcrypt.hash('Driver@123', salt);
+  const driver2Password = await bcrypt.hash('Driver@123', salt);
 
   await db.run(
-    'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-    ['admin', adminPassword, 'admin']
+    'INSERT INTO users (username, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
+    ['admin', 'admin@hatsun.com', adminPassword, '9876543210', 'admin']
   );
   await db.run(
-    'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-    ['driver1', driverPassword, 'delivery_staff']
+    'INSERT INTO users (username, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
+    ['driver1', 'driver1@hatsun.com', driver1Password, '9876543211', 'delivery_staff']
   );
   await db.run(
-    'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-    ['driver2', driverPassword, 'delivery_staff']
+    'INSERT INTO users (username, email, password, phone, role) VALUES (?, ?, ?, ?, ?)',
+    ['driver2', 'driver2@hatsun.com', driver2Password, '9876543212', 'delivery_staff']
   );
 
   // 2. Seed Products (Hatsun Agro Brands)
@@ -303,7 +304,26 @@ async function seed() {
     [deliveryId, paneer1.id, 5, 84.0, 420.0]
   );
 
-  console.log('Seeding completed successfully! Default accounts: admin/admin123, driver1/driver123');
+  console.log('========================================');
+  console.log('Seeding completed successfully!');
+  console.log('========================================');
+  console.log('Default Accounts:');
+  console.log('');
+  console.log('Admin Account:');
+  console.log('  Username: admin');
+  console.log('  Email: admin@hatsun.com');
+  console.log('  Password: Admin@123');
+  console.log('');
+  console.log('Driver Account 1:');
+  console.log('  Username: driver1');
+  console.log('  Email: driver1@hatsun.com');
+  console.log('  Password: Driver@123');
+  console.log('');
+  console.log('Driver Account 2:');
+  console.log('  Username: driver2');
+  console.log('  Email: driver2@hatsun.com');
+  console.log('  Password: Driver@123');
+  console.log('========================================');
 }
 
 if (require.main === module) {

@@ -11,23 +11,50 @@ const passwordSchema = Joi.string()
     'any.required': 'Password is required'
   });
 
-// User creation validation
+// Email validation schema
+const emailSchema = Joi.string()
+  .email({ tlds: { allow: false } })
+  .required()
+  .trim()
+  .messages({
+    'string.email': 'Please provide a valid email address',
+    'any.required': 'Email is required'
+  });
+
+// User creation validation (for Driver creation by Admin)
 const createUserSchema = Joi.object({
   username: Joi.string().alphanum().min(3).max(30).required().trim(),
+  email: emailSchema,
   password: passwordSchema,
+  phone: Joi.string().pattern(/^[0-9]{10}$/).required().messages({
+    'string.pattern.base': 'Phone number must be exactly 10 digits'
+  }),
   role: Joi.string().valid('admin', 'delivery_staff').required()
 });
 
-// User update validation
+// User update validation (Admin updating user details)
 const updateUserSchema = Joi.object({
-  role: Joi.string().valid('admin', 'delivery_staff').optional(),
-  password: passwordSchema.optional()
+  email: emailSchema.optional(),
+  phone: Joi.string().pattern(/^[0-9]{10}$/).optional().messages({
+    'string.pattern.base': 'Phone number must be exactly 10 digits'
+  }),
+  role: Joi.string().valid('admin', 'delivery_staff').optional()
 }).min(1);
 
-// Login validation
+// Login validation - requires username, email, and password
 const loginSchema = Joi.object({
   username: Joi.string().required().trim(),
+  email: emailSchema,
   password: Joi.string().required()
+});
+
+// Password change validation
+const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().required(),
+  newPassword: passwordSchema,
+  confirmPassword: Joi.string().required().valid(Joi.ref('newPassword')).messages({
+    'any.only': 'Confirm password must match new password'
+  })
 });
 
 // Delivery creation validation
@@ -144,9 +171,11 @@ const validateQuery = (schema) => {
 
 module.exports = {
   passwordSchema,
+  emailSchema,
   createUserSchema,
   updateUserSchema,
   loginSchema,
+  changePasswordSchema,
   createDeliverySchema,
   productSchema,
   shopSchema,
