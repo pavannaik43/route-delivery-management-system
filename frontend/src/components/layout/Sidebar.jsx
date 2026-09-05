@@ -30,7 +30,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     {
       label: 'Operations',
       items: [
-        { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, role: 'all' },
+        { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, role: 'admin' },
         { name: 'Load Vehicle', path: '/load', icon: Truck, role: 'all' },
         { name: 'New Delivery', path: '/deliver', icon: PackageCheck, role: 'all' },
         { name: 'Live Stock', path: '/stock', icon: Boxes, role: 'all' },

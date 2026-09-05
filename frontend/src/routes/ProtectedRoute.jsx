@@ -33,5 +33,5 @@ export const AdminRoute = () => {
     return <Navigate to="/login" replace />;
   }
 
-  return isAdmin ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  return isAdmin ? <Outlet /> : <Navigate to="/deliver" replace />;
 };

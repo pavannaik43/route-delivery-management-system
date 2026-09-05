@@ -11,6 +11,7 @@
  * Run with: node security-test.js
  */
 
+require('dotenv').config({ path: __dirname + '/.env' });
 const axios = require('axios');
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:5000/api';
@@ -212,6 +213,50 @@ async function testHealthEndpoint() {
   }
 }
 
+async function testDashboardAuthorization() {
+  log('\n=== Testing Dashboard Authorization (/api/dashboard/today) ===', 'blue');
+  const jwt = require('jsonwebtoken');
+  const JWT_SECRET = process.env.JWT_SECRET || 'hatsun_rdms_super_secret_jwt_key_2026_agro_products';
+
+  // 1. Unauthenticated request (no token) -> should return 401
+  try {
+    const response = await axios.get(`${API_BASE_URL}/dashboard/today`).catch(err => err.response);
+    assert(response && response.status === 401, 'Rejects unauthenticated access with 401');
+  } catch (error) {
+    log(`Dashboard unauthenticated test error: ${error.message}`, 'red');
+  }
+
+  // 2. Non-admin request (role: delivery_staff) -> should return 403
+  try {
+    const staffToken = jwt.sign(
+      { id: 2, username: 'driver1', email: 'driver1@hatsun.com', role: 'delivery_staff' },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    const response = await axios.get(`${API_BASE_URL}/dashboard/today`, {
+      headers: { Authorization: `Bearer ${staffToken}` }
+    }).catch(err => err.response);
+    assert(response && response.status === 403, 'Rejects non-admin (delivery_staff) access with 403');
+  } catch (error) {
+    log(`Dashboard non-admin test error: ${error.message}`, 'red');
+  }
+
+  // 3. Admin request (role: admin) -> should return 200
+  try {
+    const adminToken = jwt.sign(
+      { id: 1, username: 'admin', email: 'admin@hatsun.com', role: 'admin' },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    const response = await axios.get(`${API_BASE_URL}/dashboard/today`, {
+      headers: { Authorization: `Bearer ${adminToken}` }
+    }).catch(err => err.response);
+    assert(response && response.status === 200, 'Allows admin access with 200');
+  } catch (error) {
+    log(`Dashboard admin test error: ${error.message}`, 'red');
+  }
+}
+
 async function runAllTests() {
   log('\n╔════════════════════════════════════════╗', 'blue');
   log('║   RDMSystem Security Test Suite       ║', 'blue');
@@ -219,6 +264,7 @@ async function runAllTests() {
   log(`\nTesting API: ${API_BASE_URL}\n`, 'yellow');
 
   await testHealthEndpoint();
+  await testDashboardAuthorization();
   await testRateLimiting();
   await testPasswordValidation();
   await testInputValidation();

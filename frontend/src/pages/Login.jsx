@@ -17,8 +17,15 @@ export const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingTime, setLoadingTime] = useState(0);
   const [serverStatus, setServerStatus] = useState('checking'); // 'online', 'offline', 'checking'
-  const { login } = useAuth();
+  const { login, isAuthenticated, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  // If already authenticated, redirect to appropriate home route
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(isAdmin ? '/dashboard' : '/deliver', { replace: true });
+    }
+  }, [isAuthenticated, isAdmin, navigate]);
 
   // Check backend server connectivity on load
   const testServerConnection = async () => {
@@ -88,8 +95,12 @@ export const Login = () => {
       setError('');
       setErrorDetails(null);
       setIsLoading(true);
-      await login(username, email, password);
-      navigate('/dashboard');
+      const loggedUser = await login(username, email, password);
+      if (loggedUser?.role === 'admin') {
+        navigate('/dashboard');
+      } else {
+        navigate('/deliver');
+      }
     } catch (err) {
       const formatted = formatNetworkError(err);
       setError(formatted.message);
@@ -108,8 +119,12 @@ export const Login = () => {
       setError('');
       setErrorDetails(null);
       setIsLoading(true);
-      await login(user, emailVal, pass);
-      navigate('/dashboard');
+      const loggedUser = await login(user, emailVal, pass);
+      if (loggedUser?.role === 'admin') {
+        navigate('/dashboard');
+      } else {
+        navigate('/deliver');
+      }
     } catch (err) {
       const formatted = formatNetworkError(err);
       setError(formatted.message);

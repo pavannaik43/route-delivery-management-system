@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { getDashboardTodayApi } from '../api/endpoints';
 import { useAuth } from '../context/AuthContext';
 import { StatCard } from '../components/ui/StatCard';
@@ -44,6 +44,11 @@ const COLORS = ['#005BAC', '#0077CC', '#22C55E', '#F59E0B', '#8B5CF6', '#EC4899'
 export const Dashboard = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  if (!isAdmin) {
+    return <Navigate to="/deliver" replace />;
+  }
+
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
