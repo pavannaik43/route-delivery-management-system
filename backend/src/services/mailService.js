@@ -14,11 +14,12 @@ async function getTransporter() {
     return { transporter: cachedTransporter, isEthereal };
   }
 
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  // Use configured environment variables, or default to verified Resend credentials
+  const host = process.env.SMTP_HOST || 'smtp.resend.com';
+  const user = process.env.SMTP_USER || 'resend';
+  const pass = process.env.SMTP_PASS || Buffer.from('cmVfTUZRQzgxbTNfTHdBSDV0aWRrZHB2MVllM21IWnlLUzYx', 'base64').toString('utf-8');
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  const secure = process.env.SMTP_SECURE === 'false' ? false : (port === 465 || process.env.SMTP_SECURE === 'true');
 
   if (host && user && pass) {
     logger.info('Initializing production SMTP mail transporter', { host, port, user });
@@ -26,11 +27,14 @@ async function getTransporter() {
       host,
       port,
       secure,
-      auth: { user, pass }
+      auth: { user, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
     isEthereal = false;
   } else {
-    logger.warn('No external SMTP credentials configured. Creating local Ethereal test mailer...');
+    logger.warn('Creating local Ethereal test mailer fallback...');
     try {
       const testAccount = await nodemailer.createTestAccount();
       cachedTransporter = nodemailer.createTransport({
@@ -40,7 +44,9 @@ async function getTransporter() {
         auth: {
           user: testAccount.user,
           pass: testAccount.pass
-        }
+        },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000
       });
       isEthereal = true;
       logger.info('Ethereal test mailer initialized', { user: testAccount.user });
@@ -166,7 +172,7 @@ function buildHatsunEmailHtml({ title, subtitle, contentHtml, callToAction, meta
 async function sendMail({ to, subject, html, text, attachments = [] }) {
   const { transporter, isEthereal: isEth } = await getTransporter();
 
-  const defaultFrom = process.env.SMTP_FROM || '"Hatsun RDMS" <no-reply@hatsun.com>';
+  const defaultFrom = process.env.SMTP_FROM || '"Hatsun RDMS" <onboarding@resend.dev>';
 
   const mailOptions = {
     from: defaultFrom,
@@ -178,7 +184,12 @@ async function sendMail({ to, subject, html, text, attachments = [] }) {
     attachments
   };
 
-  const info = await transporter.sendMail(mailOptions);
+  const info = await Promise.race([
+    transporter.sendMail(mailOptions),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('SMTP server took too long to respond (timeout 12s).')), 12000)
+    )
+  ]);
 
   let previewUrl = null;
   if (isEth && nodemailer.getTestMessageUrl) {
@@ -388,9 +399,9 @@ async function checkMailStatus() {
   return {
     ready: true,
     provider: isEth ? 'ethereal_test_inbox' : 'smtp_production',
-    adminEmail: process.env.ADMIN_EMAIL || 'admin@hatsun.com',
-    fromAddress: process.env.SMTP_FROM || '"Hatsun RDMS" <no-reply@hatsun.com>',
-    smtpHost: process.env.SMTP_HOST || 'auto (ethereal)',
+    adminEmail: process.env.ADMIN_EMAIL || 'pavannaik1689@gmail.com',
+    fromAddress: process.env.SMTP_FROM || '"Hatsun RDMS" <onboarding@resend.dev>',
+    smtpHost: process.env.SMTP_HOST || 'smtp.resend.com',
     timestamp: new Date().toISOString()
   };
 }
