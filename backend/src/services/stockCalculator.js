@@ -19,19 +19,25 @@ async function getStockSummary(date = null, productId = null) {
       p.status,
       vl.id AS load_id,
       COALESCE(vl.quantity, 0) AS loaded_quantity,
-      COALESCE(SUM(di.quantity), 0) AS delivered_quantity,
-      (COALESCE(vl.quantity, 0) - COALESCE(SUM(di.quantity), 0)) AS remaining_stock
+      COALESCE((
+        SELECT SUM(di.quantity)
+        FROM delivery_items di
+        JOIN deliveries d ON d.id = di.delivery_id
+        WHERE di.product_id = p.id AND d.delivery_date = ?
+      ), 0) AS delivered_quantity,
+      (COALESCE(vl.quantity, 0) - COALESCE((
+        SELECT SUM(di.quantity)
+        FROM delivery_items di
+        JOIN deliveries d ON d.id = di.delivery_id
+        WHERE di.product_id = p.id AND d.delivery_date = ?
+      ), 0)) AS remaining_stock
     FROM products p
     LEFT JOIN vehicle_load vl 
       ON p.id = vl.product_id AND vl.load_date = ?
-    LEFT JOIN deliveries d 
-      ON d.delivery_date = ?
-    LEFT JOIN delivery_items di 
-      ON di.delivery_id = d.id AND di.product_id = p.id
     WHERE 1=1
   `;
 
-  const params = [targetDate, targetDate];
+  const params = [targetDate, targetDate, targetDate];
 
   if (productId) {
     query += ' AND p.id = ?';

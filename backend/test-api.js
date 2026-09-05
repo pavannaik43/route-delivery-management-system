@@ -40,7 +40,7 @@ async function runTests() {
     path: '/api/auth/login',
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
-  }, { username: 'admin', password: 'admin123' });
+  }, { username: 'admin', email: 'admin@rdms.com', password: 'admin123' });
   console.log('2. Admin Login:', adminLogin.status === 200 ? 'PASS' : 'FAIL', 'Token received:', !!adminLogin.data.token);
   const adminToken = adminLogin.data.token;
 
@@ -51,7 +51,7 @@ async function runTests() {
     path: '/api/auth/login',
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
-  }, { username: 'driver1', password: 'driver123' });
+  }, { username: 'driver1', email: 'driver1@rdms.com', password: 'driver123' });
   console.log('3. Driver Login:', driverLogin.status === 200 ? 'PASS' : 'FAIL', 'Role:', driverLogin.data.user?.role);
   const driverToken = driverLogin.data.token;
 

@@ -36,8 +36,11 @@ async function getLoads(req, res, next) {
 
 async function createLoads(req, res, next) {
   try {
-    const { items, date } = req.body;
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const { items, date, load_date, loadDate } = req.body;
+    const rawDate = load_date || date || loadDate;
+    const targetDate = rawDate instanceof Date 
+      ? rawDate.toISOString().split('T')[0] 
+      : (typeof rawDate === 'string' ? rawDate.split('T')[0] : new Date().toISOString().split('T')[0]);
     const userId = req.user.id;
 
     if (!items || !Array.isArray(items) || items.length === 0) {

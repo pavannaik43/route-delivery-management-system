@@ -10,7 +10,7 @@ async function getDailyReport(req, res, next) {
         COUNT(DISTINCT d.id) AS deliveries_count,
         COUNT(DISTINCT d.shop_id) AS unique_shops_visited,
         COALESCE(SUM(di.quantity), 0) AS total_units_sold,
-        COALESCE(SUM(d.total_amount), 0) AS total_revenue
+        COALESCE(SUM(di.subtotal), 0) AS total_revenue
       FROM deliveries d
       LEFT JOIN delivery_items di ON di.delivery_id = d.id
       WHERE 1=1
@@ -46,8 +46,11 @@ async function getMonthlyReport(req, res, next) {
         COUNT(DISTINCT d.id) AS deliveries_count,
         COUNT(DISTINCT d.shop_id) AS unique_shops,
         COALESCE(SUM(di.quantity), 0) AS total_units,
-        COALESCE(SUM(d.total_amount), 0) AS total_revenue,
-        COALESCE(AVG(d.total_amount), 0) AS avg_delivery_value
+        COALESCE(SUM(di.subtotal), 0) AS total_revenue,
+        CASE 
+          WHEN COUNT(DISTINCT d.id) > 0 THEN COALESCE(SUM(di.subtotal), 0) / COUNT(DISTINCT d.id) 
+          ELSE 0 
+        END AS avg_delivery_value
       FROM deliveries d
       LEFT JOIN delivery_items di ON di.delivery_id = d.id
       WHERE strftime('%Y', d.delivery_date) = ?
@@ -84,7 +87,7 @@ async function getProductReport(req, res, next) {
     const params = [];
 
     if (from && to) {
-      query += ' AND (d.delivery_date BETWEEN ? AND ? OR d.delivery_date IS NULL)';
+      query += ' WHERE (d.delivery_date BETWEEN ? AND ? OR d.id IS NULL)';
       params.push(from, to);
     }
 
@@ -110,7 +113,7 @@ async function getShopReport(req, res, next) {
         s.route,
         s.phone,
         COUNT(DISTINCT d.id) AS total_deliveries,
-        COALESCE(SUM(d.total_amount), 0) AS total_revenue,
+        COALESCE(SUM(di.subtotal), 0) AS total_revenue,
         COALESCE(SUM(di.quantity), 0) AS total_units_purchased,
         MAX(d.delivery_date) AS last_delivery_date
       FROM shops s
@@ -121,7 +124,7 @@ async function getShopReport(req, res, next) {
     const params = [];
 
     if (from && to) {
-      query += ' AND (d.delivery_date BETWEEN ? AND ? OR d.delivery_date IS NULL)';
+      query += ' AND (d.delivery_date BETWEEN ? AND ? OR d.id IS NULL)';
       params.push(from, to);
     }
 

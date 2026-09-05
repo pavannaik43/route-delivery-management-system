@@ -6,3 +6,13 @@ dist/
 coverage/
 *.log
 backend/.env
+
+# Database — never commit live data; it is auto-seeded on first run
+*.sqlite
+*.sqlite3
+*.db
+
+# Test / debug scripts
+backend/security-test.js
+backend/test-api.js
+backend/test-e2e.js

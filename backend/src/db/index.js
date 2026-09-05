@@ -65,6 +65,23 @@ async function getDb() {
   // Enable foreign keys
   dbInstance.run('PRAGMA foreign_keys = ON;');
 
+  // Auto-migrate users table if older version without email/phone exists
+  try {
+    const tableInfo = dbInstance.exec("PRAGMA table_info(users);");
+    if (tableInfo.length > 0 && tableInfo[0].values) {
+      const cols = tableInfo[0].values.map(r => r[1]);
+      if (!cols.includes('email')) {
+        dbInstance.run("ALTER TABLE users ADD COLUMN email TEXT;");
+        dbInstance.run("UPDATE users SET email = username || '@rdms.com' WHERE email IS NULL;");
+      }
+      if (!cols.includes('phone')) {
+        dbInstance.run("ALTER TABLE users ADD COLUMN phone TEXT;");
+      }
+    }
+  } catch (migErr) {
+    console.warn('Migration check warning:', migErr.message);
+  }
+
   // Initialize schema if new or tables missing
   const schemaSql = fs.readFileSync(SCHEMA_PATH, 'utf8');
   dbInstance.exec(schemaSql);

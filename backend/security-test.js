@@ -79,6 +79,8 @@ async function testPasswordValidation() {
     try {
       const response = await axios.post(`${API_BASE_URL}/users`, {
         username: 'testuser' + Date.now(),
+        email: `test${Date.now()}@example.com`,
+        phone: '9876543210',
         password: test.password,
         role: 'delivery_staff'
       }, {
@@ -98,6 +100,8 @@ async function testPasswordValidation() {
   try {
     const response = await axios.post(`${API_BASE_URL}/users`, {
       username: 'testuser' + Date.now(),
+      email: `test${Date.now()}@example.com`,
+      phone: '9876543210',
       password: 'ValidPass123!',
       role: 'delivery_staff'
     }, {

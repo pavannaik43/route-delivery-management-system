@@ -5,11 +5,16 @@ const { db } = require('../db');
  * Format: INV-YYYYMMDD-0001
  */
 async function generateInvoiceNumber(dateStr = null) {
-  const date = dateStr ? new Date(dateStr) : new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const dateCode = `${year}${month}${day}`;
+  let dateCode;
+  if (dateStr && typeof dateStr === 'string' && dateStr.includes('-')) {
+    dateCode = dateStr.replace(/-/g, '').slice(0, 8);
+  } else {
+    const date = dateStr ? new Date(dateStr) : new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    dateCode = `${year}${month}${day}`;
+  }
 
   const prefix = `INV-${dateCode}-`;
 

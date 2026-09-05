@@ -98,7 +98,7 @@ async function createUser(req, res, next) {
 async function updateUser(req, res, next) {
   try {
     const { id } = req.params;
-    const { email, phone, role } = req.body;
+    const { email, phone, role, password } = req.body;
 
     const existing = await db.get('SELECT * FROM users WHERE id = ?', [id]);
     if (!existing) {
@@ -134,13 +134,24 @@ async function updateUser(req, res, next) {
       updates.push('email = ?');
       params.push(email.trim());
     }
-    if (phone) {
+    if (phone !== undefined && phone !== null) {
       updates.push('phone = ?');
       params.push(phone.trim());
     }
     if (role) {
       updates.push('role = ?');
       params.push(role);
+    }
+    if (password && password.trim()) {
+      if (password.length < 6) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must be at least 6 characters long'
+        });
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updates.push('password = ?');
+      params.push(hashedPassword);
     }
 
     if (updates.length === 0) {

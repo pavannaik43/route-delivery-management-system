@@ -35,10 +35,11 @@ const createUserSchema = Joi.object({
 // User update validation (Admin updating user details)
 const updateUserSchema = Joi.object({
   email: emailSchema.optional(),
-  phone: Joi.string().pattern(/^[0-9]{10}$/).optional().messages({
+  phone: Joi.string().pattern(/^[0-9]{10}$/).optional().allow('', null).messages({
     'string.pattern.base': 'Phone number must be exactly 10 digits'
   }),
-  role: Joi.string().valid('admin', 'delivery_staff').optional()
+  role: Joi.string().valid('admin', 'delivery_staff').optional(),
+  password: Joi.string().min(6).max(100).optional().allow('', null)
 }).min(1);
 
 // Login validation - requires username, email, and password
@@ -66,18 +67,13 @@ const createDeliverySchema = Joi.object({
       productId: Joi.number().integer().positive().optional(),
       product_id: Joi.number().integer().positive().optional(),
       quantity: Joi.number().integer().positive().required(),
-      unitPrice: Joi.number().positive().optional()
-    })
+      unitPrice: Joi.number().min(0).optional(),
+      unit_price: Joi.number().min(0).optional()
+    }).or('productId', 'product_id')
   ).required(),
-  deliveryDate: Joi.date().iso().optional(),
-  delivery_date: Joi.date().iso().optional()
-}).custom((value, helpers) => {
-  // Ensure at least one shopId is provided
-  if (!value.shopId && !value.shop_id) {
-    return helpers.error('any.required', { label: 'shopId or shop_id' });
-  }
-  return value;
-});
+  deliveryDate: Joi.string().optional(),
+  delivery_date: Joi.string().optional()
+}).or('shopId', 'shop_id');
 
 // Product validation
 const productSchema = Joi.object({
@@ -114,16 +110,23 @@ const dateQuerySchema = Joi.object({
 
 // Load creation validation
 const loadSchema = Joi.object({
-  load_date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required().messages({
+  load_date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional().messages({
+    'string.pattern.base': 'Load date must be in YYYY-MM-DD format'
+  }),
+  date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional().messages({
+    'string.pattern.base': 'Date must be in YYYY-MM-DD format'
+  }),
+  loadDate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional().messages({
     'string.pattern.base': 'Load date must be in YYYY-MM-DD format'
   }),
   items: Joi.array().min(1).items(
     Joi.object({
-      product_id: Joi.number().integer().positive().required(),
+      product_id: Joi.number().integer().positive().optional(),
+      productId: Joi.number().integer().positive().optional(),
       quantity: Joi.number().integer().positive().required()
-    })
+    }).or('product_id', 'productId')
   ).required()
-});
+}).or('load_date', 'date', 'loadDate');
 
 // Validation middleware factory
 const validate = (schema) => {
