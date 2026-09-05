@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getDaySummaryApi } from '../api/endpoints';
+import { getDaySummaryApi, sendDaySummaryMailApi } from '../api/endpoints';
 import { Card, CardHeader, CardBody } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
+import { Alert } from '../components/ui/Alert';
 import {
   CalendarCheck,
   Calendar,
@@ -15,11 +16,15 @@ import {
   Store,
   Sparkles,
   CheckCircle2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Mail,
+  Check
 } from 'lucide-react';
 
 export const DaySummary = () => {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [isSendingMail, setIsSendingMail] = useState(false);
+  const [mailResult, setMailResult] = useState(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['daySummary', selectedDate],
@@ -33,6 +38,26 @@ export const DaySummary = () => {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSendEmail = async () => {
+    try {
+      setIsSendingMail(true);
+      setMailResult(null);
+      const res = await sendDaySummaryMailApi({ date: selectedDate });
+      setMailResult({
+        type: 'success',
+        message: res.message || `Summary report for ${selectedDate} sent to admin successfully!`,
+        previewUrl: res.previewUrl
+      });
+    } catch (err) {
+      setMailResult({
+        type: 'danger',
+        message: err.response?.data?.message || err.message || 'Failed to dispatch summary email.'
+      });
+    } finally {
+      setIsSendingMail(false);
+    }
   };
 
   return (
@@ -51,7 +76,7 @@ export const DaySummary = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Date Picker */}
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">
             <Calendar className="w-4 h-4 text-primary" />
@@ -65,6 +90,17 @@ export const DaySummary = () => {
           </div>
 
           <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSendEmail}
+            isLoading={isSendingMail}
+            className="border-primary/30 text-primary hover:bg-primary/5 font-semibold"
+          >
+            <Mail className="w-4 h-4 mr-1.5 text-primary" />
+            Email Admin
+          </Button>
+
+          <Button
             variant="primary"
             size="sm"
             onClick={handlePrint}
@@ -75,6 +111,32 @@ export const DaySummary = () => {
           </Button>
         </div>
       </div>
+
+      {/* Mail Alert Notification */}
+      {mailResult && (
+        <div className="no-print">
+          <Alert
+            type={mailResult.type}
+            title={mailResult.type === 'success' ? 'Email Dispatched to Admin' : 'Email Dispatch Failed'}
+            message={
+              <div>
+                <p>{mailResult.message}</p>
+                {mailResult.previewUrl && (
+                  <a
+                    href={mailResult.previewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 mt-2 text-xs font-bold text-blue-700 underline hover:text-blue-900"
+                  >
+                    View Rendered HTML Email (Ethereal Preview) &rarr;
+                  </a>
+                )}
+              </div>
+            }
+            onClose={() => setMailResult(null)}
+          />
+        </div>
+      )}
 
       {/* Printable EOD Container */}
       <div id="printable-invoice" className="space-y-6">

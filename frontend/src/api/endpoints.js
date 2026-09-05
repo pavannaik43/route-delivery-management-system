@@ -58,3 +58,8 @@ export const getUsersApi = () => api.get('/users').then(res => res.data);
 export const createUserApi = (data) => api.post('/users', data).then(res => res.data);
 export const updateUserApi = (id, data) => api.put(`/users/${id}`, data).then(res => res.data);
 export const deleteUserApi = (id) => api.delete(`/users/${id}`).then(res => res.data);
+
+// Mail Service
+export const sendAdminMailApi = (data) => api.post('/mail/send-admin', data).then(res => res.data);
+export const sendDaySummaryMailApi = (data) => api.post('/mail/send-summary', data).then(res => res.data);
+export const getMailStatusApi = () => api.get('/mail/status').then(res => res.data);

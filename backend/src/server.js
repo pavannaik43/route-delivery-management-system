@@ -22,6 +22,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const summaryRoutes = require('./routes/summaryRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const userRoutes = require('./routes/userRoutes');
+const mailRoutes = require('./routes/mailRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -136,6 +137,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/summary', summaryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/mail', mailRoutes);
 
 // 404 handler for undefined API routes
 app.use('/api/*', (req, res) => {
