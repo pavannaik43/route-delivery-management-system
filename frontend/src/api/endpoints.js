@@ -62,4 +62,5 @@ export const deleteUserApi = (id) => api.delete(`/users/${id}`).then(res => res.
 // Mail Service
 export const sendAdminMailApi = (data) => api.post('/mail/send-admin', data).then(res => res.data);
 export const sendDaySummaryMailApi = (data) => api.post('/mail/send-summary', data).then(res => res.data);
+export const sendInvoiceMailApi = (data) => api.post('/mail/send-invoice', data).then(res => res.data);
 export const getMailStatusApi = () => api.get('/mail/status').then(res => res.data);

@@ -2,17 +2,43 @@ import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { PrintableInvoice } from './PrintableInvoice';
-import { Printer, Download, CheckCircle, Share2 } from 'lucide-react';
+import { Printer, Download, CheckCircle, Mail, Send, Check } from 'lucide-react';
+import { sendInvoiceMailApi } from '../../api/endpoints';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 export const InvoiceModal = ({ isOpen, onClose, invoice }) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [isEmailing, setIsEmailing] = useState(false);
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [emailRecipient, setEmailRecipient] = useState('pavannaik1689@gmail.com');
+  const [emailSentSuccess, setEmailSentSuccess] = useState(false);
 
   if (!invoice) return null;
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSendInvoiceEmail = async () => {
+    if (!emailRecipient) return;
+    try {
+      setIsEmailing(true);
+      await sendInvoiceMailApi({
+        deliveryId: invoice.delivery_id || invoice.id,
+        to: emailRecipient,
+        message: `Attached is the official Hatsun Agro Products tax invoice #${invoice.invoice_no} for ${invoice.shop_name}.`
+      });
+      setEmailSentSuccess(true);
+      setTimeout(() => {
+        setEmailSentSuccess(false);
+        setShowEmailInput(false);
+      }, 2500);
+    } catch (err) {
+      alert(err.response?.data?.message || err.message || 'Failed to send invoice email.');
+    } finally {
+      setIsEmailing(false);
+    }
   };
 
   const handleDownloadPDF = async () => {
@@ -77,7 +103,16 @@ export const InvoiceModal = ({ isOpen, onClose, invoice }) => {
             <span>Delivery Recorded & Stock Decremented</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEmailInput(!showEmailInput)}
+              className="bg-white text-primary border-primary/30 hover:bg-primary/5"
+            >
+              <Mail className="w-4 h-4 mr-1 text-primary" />
+              Email Invoice
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -98,6 +133,44 @@ export const InvoiceModal = ({ isOpen, onClose, invoice }) => {
             </Button>
           </div>
         </div>
+
+        {/* Inline Email Recipient Input */}
+        {showEmailInput && (
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 no-print">
+            <label className="block text-xs font-bold text-slate-700">
+              Email Invoice To:
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="email"
+                value={emailRecipient}
+                onChange={(e) => setEmailRecipient(e.target.value)}
+                placeholder="Enter recipient email address..."
+                className="flex-1 text-xs px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20"
+              />
+              <Button
+                variant="primary"
+                size="sm"
+                isLoading={isEmailing}
+                onClick={handleSendInvoiceEmail}
+                disabled={emailSentSuccess}
+                className="font-bold whitespace-nowrap"
+              >
+                {emailSentSuccess ? (
+                  <>
+                    <Check className="w-4 h-4 mr-1 text-emerald-300" />
+                    Sent!
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5 mr-1" />
+                    Send
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Invoice Component */}
         <div className="overflow-x-auto bg-white rounded-xl shadow-inner border border-slate-200 p-2">

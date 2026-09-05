@@ -202,17 +202,17 @@ async function sendMail({ to, subject, html, text, attachments = [] }) {
 }
 
 /**
- * Send an administrative notification email to the configured admin
+ * Send an administrative notification email to the configured admin or custom recipient
  */
-async function sendAdminMail({ subject, title, message, metadata = [], callToAction }) {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@hatsun.com';
+async function sendAdminMail({ to, subject, title, message, metadata = [], callToAction, attachments = [] }) {
+  const targetRecipient = to || process.env.ADMIN_EMAIL || 'admin@hatsun.com';
 
   const html = buildHatsunEmailHtml({
     title: title || subject,
-    subtitle: 'System Notification & Administration Alert',
-    contentHtml: `<p style="margin: 0;">${message}</p>`,
+    subtitle: 'System Notification & Operations Dispatch',
+    contentHtml: `<div style="margin: 0;">${message}</div>`,
     metadata: [
-      { label: 'Recipient', value: adminEmail },
+      { label: 'Recipient', value: targetRecipient },
       { label: 'Timestamp', value: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) },
       ...metadata
     ],
@@ -223,9 +223,110 @@ async function sendAdminMail({ subject, title, message, metadata = [], callToAct
   });
 
   return sendMail({
-    to: adminEmail,
-    subject: `[Hatsun RDMS Admin] ${subject}`,
-    html
+    to: targetRecipient,
+    subject: subject.startsWith('[Hatsun RDMS') ? subject : `[Hatsun RDMS] ${subject}`,
+    html,
+    attachments
+  });
+}
+
+/**
+ * Send an official Tax Invoice email with structured items table and attachment
+ */
+async function sendInvoiceMail({ to, invoice, message }) {
+  const targetRecipient = to || process.env.ADMIN_EMAIL || 'admin@hatsun.com';
+  const invNo = invoice.invoice_no || `INV-${invoice.id || '0001'}`;
+  const totalAmount = Number(invoice.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  const items = invoice.items || [];
+
+  const itemsRows = items
+    .map(
+      (item, idx) => `
+      <tr style="background-color: ${idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">
+        <td style="padding: 8px 10px; font-size: 12px; color: #0F172A; border-bottom: 1px solid #E2E8F0;">
+          <strong>${item.product_name || item.name}</strong>
+          ${item.size ? `<span style="font-size: 10px; color: #64748B; display: block;">${item.size} | ${item.category || ''}</span>` : ''}
+        </td>
+        <td style="padding: 8px 10px; font-size: 12px; color: #0F172A; text-align: center; border-bottom: 1px solid #E2E8F0;">${item.quantity}</td>
+        <td style="padding: 8px 10px; font-size: 12px; color: #0F172A; text-align: right; border-bottom: 1px solid #E2E8F0;">₹${Number(item.unit_price).toFixed(2)}</td>
+        <td style="padding: 8px 10px; font-size: 12px; color: #0F172A; font-weight: 700; text-align: right; border-bottom: 1px solid #E2E8F0;">₹${Number(item.subtotal).toFixed(2)}</td>
+      </tr>`
+    )
+    .join('');
+
+  const contentHtml = `
+    ${message ? `<p style="margin: 0 0 16px 0; font-size: 13px; color: #334155;">${message}</p>` : ''}
+    <div style="background-color: #F1F5F9; border-radius: 10px; padding: 14px; margin-bottom: 18px; border: 1px solid #E2E8F0;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+        <tr>
+          <td style="font-size: 12px; color: #475569; width: 50%;">
+            <strong>Retailer Store:</strong> ${invoice.shop_name || 'Retail Partner'}<br>
+            ${invoice.owner_name ? `<strong>Proprietor:</strong> ${invoice.owner_name}<br>` : ''}
+            <strong>Route:</strong> ${invoice.route || invoice.shop_route || 'Direct Route'}
+          </td>
+          <td style="font-size: 12px; color: #475569; text-align: right; width: 50%;">
+            <strong>Invoice #:</strong> <span style="color: #005BAC; font-weight: bold;">${invNo}</span><br>
+            <strong>Delivery Date:</strong> ${invoice.delivery_date || new Date().toISOString().split('T')[0]}<br>
+            <strong>Status:</strong> <span style="color: #16A34A; font-weight: bold;">Confirmed & Dispatched</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Line items table -->
+    <div style="border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse;">
+        <thead>
+          <tr style="background-color: #005BAC; color: #FFFFFF; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <th style="padding: 8px 10px; text-align: left;">Product Item</th>
+            <th style="padding: 8px 10px; text-align: center;">Qty</th>
+            <th style="padding: 8px 10px; text-align: right;">Unit Price</th>
+            <th style="padding: 8px 10px; text-align: right;">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsRows}
+        </tbody>
+        <tfoot>
+          <tr style="background-color: #EFF6FF; font-weight: bold;">
+            <td colspan="3" style="padding: 10px; text-align: right; font-size: 12px; color: #1E3A8A; border-top: 2px solid #005BAC;">Grand Total (INR):</td>
+            <td style="padding: 10px; text-align: right; font-size: 15px; color: #005BAC; border-top: 2px solid #005BAC;">₹${totalAmount}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  const invoiceSummaryText = `
+HATSUN AGRO PRODUCT LTD - TAX INVOICE
+Invoice Number: ${invNo}
+Delivery Date: ${invoice.delivery_date || new Date().toISOString().split('T')[0]}
+Retailer: ${invoice.shop_name}
+Route: ${invoice.route || '-'}
+Total Amount: INR ${totalAmount}
+Items Count: ${items.length}
+`;
+
+  return sendAdminMail({
+    to: targetRecipient,
+    subject: `Tax Invoice ${invNo} - ${invoice.shop_name || 'Hatsun RDMS'}`,
+    title: `Tax Invoice & Delivery Confirmation`,
+    message: contentHtml,
+    metadata: [
+      { label: 'Invoice No', value: invNo },
+      { label: 'Retailer Store', value: invoice.shop_name || 'Customer' },
+      { label: 'Total Invoiced', value: `₹${totalAmount}` }
+    ],
+    callToAction: {
+      text: 'View Invoice in Portal',
+      url: `${process.env.WEB_URL || 'http://localhost:5000'}/invoices`
+    },
+    attachments: [
+      {
+        filename: `${invNo}.txt`,
+        content: invoiceSummaryText
+      }
+    ]
   });
 }
 
@@ -298,6 +399,7 @@ module.exports = {
   sendMail,
   sendAdminMail,
   sendDailySummaryMail,
+  sendInvoiceMail,
   checkMailStatus,
   buildHatsunEmailHtml
 };

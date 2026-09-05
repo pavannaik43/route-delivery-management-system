@@ -4,27 +4,142 @@ const { getStockSummary } = require('../services/stockCalculator');
 const logger = require('../config/logger');
 
 /**
- * Send custom or administrative notification to admin
+ * Send custom or administrative notification to admin or custom recipient
+ * Optionally attaches a tax invoice if invoiceId is provided
  */
 async function sendAdminNotification(req, res, next) {
   try {
-    const { subject, title, message, metadata, callToAction } = req.body;
+    const { to, subject, title, message, metadata, callToAction, invoiceId } = req.body;
 
+    // If an invoice is attached, load it and dispatch formatted invoice email
+    if (invoiceId) {
+      const delivery = await db.get(
+        `SELECT 
+          d.id AS delivery_id,
+          d.invoice_no,
+          d.delivery_date,
+          d.total_amount,
+          s.shop_name,
+          s.owner_name,
+          s.phone AS shop_phone,
+          s.route
+         FROM deliveries d
+         JOIN shops s ON s.id = d.shop_id
+         WHERE d.id = ?`,
+        [invoiceId]
+      );
+
+      if (!delivery) {
+        return res.status(404).json({ success: false, message: 'Invoice not found for the specified ID.' });
+      }
+
+      const items = await db.all(
+        `SELECT 
+          di.*,
+          p.name AS product_name,
+          p.category,
+          p.size
+         FROM delivery_items di
+         JOIN products p ON p.id = di.product_id
+         WHERE di.delivery_id = ?`,
+        [invoiceId]
+      );
+
+      const invoiceData = {
+        ...delivery,
+        items
+      };
+
+      const result = await mailService.sendInvoiceMail({
+        to,
+        invoice: invoiceData,
+        message: message || `Attached please find the official Hatsun Agro Products tax invoice #${delivery.invoice_no} for ${delivery.shop_name}.`
+      });
+
+      return res.json({
+        success: true,
+        message: `Tax Invoice #${delivery.invoice_no} dispatched successfully!`,
+        ...result
+      });
+    }
+
+    // Standard notification
     const result = await mailService.sendAdminMail({
+      to,
       subject: subject || 'Administrative System Notice',
       title: title || 'Hatsun RDMS Alert',
-      message: message || 'This is an administrative test notification from Hatsun Route Delivery Management System.',
+      message: message || 'This is an administrative notification from Hatsun Route Delivery Management System.',
       metadata: metadata || [],
       callToAction
     });
 
     res.json({
       success: true,
-      message: 'Admin notification email sent successfully.',
+      message: 'Email notification sent successfully.',
       ...result
     });
   } catch (err) {
     logger.error('Failed to send admin notification email', { error: err.message });
+    next(err);
+  }
+}
+
+/**
+ * Send an invoice directly by delivery/invoice ID
+ */
+async function sendInvoiceEmail(req, res, next) {
+  try {
+    const { deliveryId, to, message } = req.body;
+
+    if (!deliveryId) {
+      return res.status(400).json({ success: false, message: 'deliveryId is required to email invoice.' });
+    }
+
+    const delivery = await db.get(
+      `SELECT 
+        d.id AS delivery_id,
+        d.invoice_no,
+        d.delivery_date,
+        d.total_amount,
+        s.shop_name,
+        s.owner_name,
+        s.phone AS shop_phone,
+        s.route
+       FROM deliveries d
+       JOIN shops s ON s.id = d.shop_id
+       WHERE d.id = ?`,
+      [deliveryId]
+    );
+
+    if (!delivery) {
+      return res.status(404).json({ success: false, message: 'Invoice record not found.' });
+    }
+
+    const items = await db.all(
+      `SELECT 
+        di.*,
+        p.name AS product_name,
+        p.category,
+        p.size
+       FROM delivery_items di
+       JOIN products p ON p.id = di.product_id
+       WHERE di.delivery_id = ?`,
+      [deliveryId]
+    );
+
+    const result = await mailService.sendInvoiceMail({
+      to,
+      invoice: { ...delivery, items },
+      message: message || `Attached is your Hatsun Agro Products delivery invoice #${delivery.invoice_no}.`
+    });
+
+    res.json({
+      success: true,
+      message: `Tax Invoice #${delivery.invoice_no} sent successfully!`,
+      ...result
+    });
+  } catch (err) {
+    logger.error('Failed to email invoice', { error: err.message });
     next(err);
   }
 }
@@ -91,5 +206,6 @@ async function getMailStatus(req, res, next) {
 module.exports = {
   sendAdminNotification,
   sendDaySummaryEmail,
+  sendInvoiceEmail,
   getMailStatus
 };

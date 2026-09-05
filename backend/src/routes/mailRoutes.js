@@ -10,6 +10,7 @@ router.use(requireRole('admin'));
 
 router.post('/send-admin', mailController.sendAdminNotification);
 router.post('/send-summary', mailController.sendDaySummaryEmail);
+router.post('/send-invoice', mailController.sendInvoiceEmail);
 router.get('/status', mailController.getMailStatus);
 
 module.exports = router;
