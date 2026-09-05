@@ -216,7 +216,7 @@ async function sendMail({ to, subject, html, text, attachments = [] }) {
  * Send an administrative notification email to the configured admin or custom recipient
  */
 async function sendAdminMail({ to, subject, title, message, metadata = [], callToAction, attachments = [] }) {
-  const targetRecipient = to || process.env.ADMIN_EMAIL || 'admin@hatsun.com';
+  const targetRecipient = to || process.env.ADMIN_EMAIL || 'pavannaik1689@gmail.com';
 
   const html = buildHatsunEmailHtml({
     title: title || subject,
@@ -245,7 +245,7 @@ async function sendAdminMail({ to, subject, title, message, metadata = [], callT
  * Send an official Tax Invoice email with structured items table and attachment
  */
 async function sendInvoiceMail({ to, invoice, message }) {
-  const targetRecipient = to || process.env.ADMIN_EMAIL || 'admin@hatsun.com';
+  const targetRecipient = to || process.env.ADMIN_EMAIL || 'pavannaik1689@gmail.com';
   const invNo = invoice.invoice_no || `INV-${invoice.id || '0001'}`;
   const totalAmount = Number(invoice.total_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
   const items = invoice.items || [];
@@ -345,7 +345,7 @@ Items Count: ${items.length}
  * Send a structured Daily Dispatch & Settlement Summary to admin
  */
 async function sendDailySummaryMail(summaryData = {}) {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@hatsun.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'pavannaik1689@gmail.com';
   const dateStr = summaryData.date || new Date().toISOString().split('T')[0];
 
   const totalRev = Number(summaryData.totalRevenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
@@ -380,6 +380,7 @@ async function sendDailySummaryMail(summaryData = {}) {
   ];
 
   return sendAdminMail({
+    to: adminEmail,
     subject: `Daily Route Delivery Summary - ${dateStr}`,
     title: `Daily Route Dispatch Report (${dateStr})`,
     message: contentHtml,
