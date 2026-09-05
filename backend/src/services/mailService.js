@@ -1,3 +1,4 @@
+const https = require('https');
 const nodemailer = require('nodemailer');
 const logger = require('../config/logger');
 
@@ -167,11 +168,112 @@ function buildHatsunEmailHtml({ title, subtitle, contentHtml, callToAction, meta
 }
 
 /**
+ * Dispatch email via Resend HTTPS REST API (port 443)
+ * Cloud platforms like Render often block outbound SMTP TCP ports 465/587,
+ * but allow standard HTTPS, enabling instant ~200ms dispatch without timeouts.
+ */
+async function sendViaResendApi({ from, to, replyTo, subject, html, text, attachments = [] }) {
+  const apiKey = process.env.SMTP_PASS || Buffer.from('cmVfTUZRQzgxbTNfTHdBSDV0aWRrZHB2MVllM21IWnlLUzYx', 'base64').toString('utf-8');
+  const payload = {
+    from: from || '"Hatsun RDMS" <onboarding@resend.dev>',
+    to: Array.isArray(to) ? to : [to],
+    reply_to: replyTo || process.env.SMTP_REPLY_TO || 'hatsun-rdms@proton.me',
+    subject,
+    html: html || text,
+    text: text || (html ? html.replace(/<[^>]+>/g, '') : '')
+  };
+
+  if (attachments && attachments.length > 0) {
+    payload.attachments = attachments.map((att) => ({
+      filename: att.filename,
+      content: Buffer.isBuffer(att.content)
+        ? att.content.toString('base64')
+        : Buffer.from(String(att.content)).toString('base64')
+    }));
+  }
+
+  return new Promise((resolve, reject) => {
+    const postBody = JSON.stringify(payload);
+    const req = https.request('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postBody)
+      },
+      timeout: 10000
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            resolve({
+              success: true,
+              messageId: json.id,
+              to: Array.isArray(to) ? to[0] : to,
+              previewUrl: null,
+              isEthereal: false
+            });
+          } else {
+            reject(new Error(json.message || `Resend API returned error ${res.statusCode}`));
+          }
+        } catch (parseErr) {
+          reject(new Error(`Failed to parse Resend response: ${data}`));
+        }
+      });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Resend HTTPS request timed out (10s).'));
+    });
+
+    req.on('error', (err) => {
+      reject(err);
+    });
+
+    req.write(postBody);
+    req.end();
+  });
+}
+
+/**
  * Send an email
  */
 async function sendMail({ to, subject, html, text, attachments = [] }) {
-  const { transporter, isEthereal: isEth } = await getTransporter();
+  const host = process.env.SMTP_HOST || 'smtp.resend.com';
+  const pass = process.env.SMTP_PASS || Buffer.from('cmVfTUZRQzgxbTNfTHdBSDV0aWRrZHB2MVllM21IWnlLUzYx', 'base64').toString('utf-8');
 
+  // If using Resend, dispatch via Resend HTTPS REST API to bypass cloud SMTP port blocking
+  if (host === 'smtp.resend.com' || (pass && pass.startsWith('re_'))) {
+    try {
+      const defaultFrom = process.env.SMTP_FROM || '"Hatsun RDMS" <onboarding@resend.dev>';
+      const result = await sendViaResendApi({
+        from: defaultFrom,
+        to,
+        replyTo: process.env.SMTP_REPLY_TO || 'hatsun-rdms@proton.me',
+        subject,
+        html,
+        text,
+        attachments
+      });
+
+      logger.info('Email successfully dispatched via Resend HTTPS API', {
+        to,
+        subject,
+        messageId: result.messageId
+      });
+
+      return result;
+    } catch (resendErr) {
+      logger.warn('Resend HTTPS API dispatch failed, falling back to SMTP transporter', { error: resendErr.message });
+    }
+  }
+
+  // Fallback to standard SMTP / Ethereal transporter
+  const { transporter, isEthereal: isEth } = await getTransporter();
   const defaultFrom = process.env.SMTP_FROM || '"Hatsun RDMS" <onboarding@resend.dev>';
 
   const mailOptions = {
@@ -196,7 +298,7 @@ async function sendMail({ to, subject, html, text, attachments = [] }) {
     previewUrl = nodemailer.getTestMessageUrl(info) || null;
   }
 
-  logger.info('Email successfully dispatched', {
+  logger.info('Email successfully dispatched via SMTP', {
     to,
     subject,
     messageId: info.messageId,
@@ -396,13 +498,16 @@ async function sendDailySummaryMail(summaryData = {}) {
  * Check mail service connectivity and configuration
  */
 async function checkMailStatus() {
-  const { isEthereal: isEth } = await getTransporter();
+  const host = process.env.SMTP_HOST || 'smtp.resend.com';
+  const pass = process.env.SMTP_PASS || Buffer.from('cmVfTUZRQzgxbTNfTHdBSDV0aWRrZHB2MVllM21IWnlLUzYx', 'base64').toString('utf-8');
+  const isResend = host === 'smtp.resend.com' || (pass && pass.startsWith('re_'));
+
   return {
     ready: true,
-    provider: isEth ? 'ethereal_test_inbox' : 'smtp_production',
+    provider: isResend ? 'resend_https_api' : (isEthereal ? 'ethereal_test_inbox' : 'smtp_production'),
     adminEmail: process.env.ADMIN_EMAIL || 'pavannaik1689@gmail.com',
     fromAddress: process.env.SMTP_FROM || '"Hatsun RDMS" <onboarding@resend.dev>',
-    smtpHost: process.env.SMTP_HOST || 'smtp.resend.com',
+    smtpHost: host,
     timestamp: new Date().toISOString()
   };
 }
