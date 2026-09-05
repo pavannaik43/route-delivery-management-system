@@ -171,6 +171,7 @@ async function sendMail({ to, subject, html, text, attachments = [] }) {
   const mailOptions = {
     from: defaultFrom,
     to,
+    replyTo: process.env.SMTP_REPLY_TO || 'hatsun-rdms@proton.me',
     subject,
     text: text || html.replace(/<[^>]+>/g, ''),
     html,
