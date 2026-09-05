@@ -16,6 +16,7 @@ import { Invoices } from './pages/Invoices';
 import { DaySummary } from './pages/DaySummary';
 import { Reports } from './pages/Reports';
 import { Users } from './pages/Users';
+import { MailCenter } from './pages/MailCenter';
 
 const DefaultRedirect = () => {
   const { isAuthenticated, isAdmin } = useAuth();
@@ -48,6 +49,7 @@ export const App = () => {
             <Route path="/shops" element={<Shops />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/users" element={<Users />} />
+            <Route path="/mail" element={<MailCenter />} />
           </Route>
         </Route>
       </Route>

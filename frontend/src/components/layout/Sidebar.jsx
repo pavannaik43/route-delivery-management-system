@@ -12,6 +12,7 @@ import {
   Store,
   BarChart3,
   Users,
+  Mail,
   LogOut,
   Shield,
   UserCheck
@@ -46,6 +47,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
         { name: 'Shops & Routes', path: '/shops', icon: Store, role: 'admin' },
         { name: 'Reports & Trends', path: '/reports', icon: BarChart3, role: 'admin' },
         { name: 'User Management', path: '/users', icon: Users, role: 'admin' },
+        { name: 'Email Service', path: '/mail', icon: Mail, role: 'admin' },
       ]
     }
   ];
